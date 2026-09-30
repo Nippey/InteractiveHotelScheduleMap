@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Interactive Map</title>
+    <meta name="theme-color" content="#f3f3f3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Hotel Map">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon.png">
+    <style>
+      :root {
+        --food-color: #d62828;
+        --activity-color: #2a9d55;
+        --label-width: 130px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        background: #f3f3f3;
+        font-family: Arial, sans-serif;
+        color: #222;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      #app {
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 5px;
+      }
+
+      /* ---------------------------------------------------------
+           Language selector
+           --------------------------------------------------------- */
+      #languageBar {
+        display: flex;
+        justify-content: flex-end;
+        gap: 3px;
+        margin-bottom: 5px;
+      }
+
+      .languageButton {
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background: #fff;
+        padding: 4px 7px;
+        min-height: 2lh;
+        font-size: 13px;
+        cursor: pointer;
+        transition:
+          background 0.1s,
+          border-color 0.1s;
+      }
+
+      .languageButton:hover {
+        background: #f0f0f0;
+      }
+
+      .languageButton.selected {
+        background: #ddd;
+        border-color: #777;
+        font-weight: bold;
+      }
+
+      /* ---------------------------------------------------------
+           Timeline
+           --------------------------------------------------------- */
+      .timeline-section {
+        width: 100%;
+        margin: 5px 0;
+      }
+
+      .timeline-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 3px 0;
+      }
+
+      .timeline-wrapper {
+        width: 100%;
+        background: white;
+        border-radius: 6px;
+        box-shadow:
+          0 1px 3px rgba(0, 0, 0, 0.15);
+        overflow: visible;
+      }
+
+      .timeline {
+        width: 100%;
+      }
+
+      /*
+         * Twelve columns, each representing two hours.
+         */
+      .timeline-header,
+      .timeline-row {
+        display: grid;
+        grid-template-columns:
+          var(--label-width) repeat(24, minmax(0, 1fr));
+      }
+
+      .timeline-header {
+        height: 25px;
+        background: #fafafa;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .timeline-header-label {
+        border-right: 1px solid #ddd;
+      }
+
+      .hour {
+        text-align: center;
+        font-size: 9px;
+        color: #666;
+        padding-top: 6px;
+        border-right: 1px solid #e5e5e5;
+      }
+
+      .timeline-row {
+        min-height: 32px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .timeline-row:last-child {
+        border-bottom: none;
+      }
+
+      .entry-name {
+        display: flex;
+        align-items: center;
+        /*
+             * Reduced horizontal padding so that more
+             * timeline space remains available.
+             */
+        padding: 3px 4px;
+        /*min-width: 120px;*/
+        font-size: 11px;
+        line-height: 13px;
+        white-space: wrap;
+        word-break: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-right: 1px solid #ddd;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .entry-name.highlighted {
+        background: #fffbe6;
+        box-shadow: inset 4px 0 0 #ffbe00;
+        font-weight: bold;
+        padding-left: 6px;
+      }
+
+      /*
+         * Time grid.
+         */
+      .time-grid {
+        position: relative;
+        grid-column: 2 / 26;
+        min-width: 0;
+        min-height: 32px;
+        background-image:
+          repeating-linear-gradient(to right,
+            transparent 0,
+            transparent calc(100% / 24 - 1px),
+            #e8e8e8 calc(100% / 24 - 1px),
+            #e8e8e8 calc(100% / 24));
+      }
+
+      /*
+         * Opening-time block.
+         */
+      .time-block {
+        position: absolute;
+        top: 2px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        /*
+             * Minimal horizontal padding.
+             *
+             * This deliberately allows the browser to break
+             * the text at the "-" when necessary.
+             */
+        padding: 0 1px;
+        border: 2px solid;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.96);
+        font-size: 9px;
+        line-height: 10px;
+        /*
+             * Allow the interval to wrap.
+             */
+        white-space: nowrap;
+        overflow: visible;
+        text-align: left;
+        z-index: 2;
+        cursor: pointer;
+        transition:
+          transform 0.1s,
+          box-shadow 0.1s,
+          background 0.1s;
+      }
+
+      .time-block.food {
+        border-color: var(--food-color);
+      }
+
+      .time-block.activity {
+        border-color: var(--activity-color);
+      }
+      .time-block.touches-next { border-right-style: dashed; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+      .time-block.touches-exact-next { border-right: 0; }
+      .time-block.touches-prev {
+        border-left-style: dashed;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+
+      .time-block.highlighted {
+        background: #fffbe6;
+        box-shadow:
+          0 0 0 3px rgba(255, 190, 0, 0.8);
+        z-index: 20;
+      }
+
+      /*
+         * Explicit break opportunity at the hyphen.
+         *
+         * The HTML contains the two parts separately, allowing
+         * the browser to wrap them even inside a very narrow block.
+         */
+      .time-text {
+        display: inline;
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
+        margin-right: 2px;
+      }
+
+      .time-hyphen { white-space: nowrap; }
+      .time-short-label { margin-left: 1px; font-size: 11px; line-height: 13px; white-space: nowrap; flex: 0 0 auto; }
+
+      .time-break {
+        display: block;
+      }
+
+      .current-time-line {
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        width: 2px;
+        background: #0078d4;
+        transform: translateX(-1px);
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      .current-time-badge {
+        position: absolute;
+        left: 50%;
+        top: -13px;
+        transform: translate(-50%, -50%);
+        min-width: 34px;
+        height: 34px;
+        padding: 0 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #0078d4;
+        color: white;
+        font-size: 9px;
+        font-weight: bold;
+        white-space: nowrap;
+      }
+
+      /* ---------------------------------------------------------
+           Tag bubble
+           --------------------------------------------------------- */
+      /*
+         * The bubble is positioned relative to the time block.
+         *
+         * It does not participate in normal document flow and
+         * therefore cannot change the layout.
+         */
+      .time-tag {
+        position: absolute;
+        left: -2px;
+        top: calc(100% + 2px);
+        z-index: 100;
+        display: none;
+        padding: 3px 6px;
+        max-width: 280px;
+        background: white;
+        border: 1px solid #999;
+        border-radius: 5px;
+        box-shadow:
+          0 2px 6px rgba(0, 0, 0, 0.22);
+        font-size: 10px;
+        line-height: 12px;
+        white-space: pre;
+        overflow-wrap: break-word;
+        word-break: normal;
+        pointer-events: none;
+      }
+
+      /*
+         * The tag is visible only when its entry is selected.
+         */
+      .time-block.selected .time-tag {
+        display: block;
+        pointer-events: auto;
+        touch-action: manipulation;
+      }
+      .timeline-row.tag-row-in-front {
+        position: relative;
+        z-index: 1000;
+      }
+      .timeline-row.tag-row-in-front .time-grid { z-index: 1001; }
+      .timeline-row.tag-row-in-front .time-block.tag-in-front { z-index: 1002; }
+      .timeline-row.tag-row-in-front .time-block.tag-in-front .time-tag { z-index: 1003; }
+      /* ---------------------------------------------------------
+           Map
+           --------------------------------------------------------- */
+      #mapArea {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 5px 0;
+      }
+
+      #mapContainer {
+        position: relative;
+        max-width: 100%;
+        max-height: 70vh;
+        display: inline-block;
+      }
+
+      #mapImage {
+        display: block;
+        max-width: 100%;
+        max-height: 70vh;
+        width: auto;
+        height: auto;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      #mapOverlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      /* ---------------------------------------------------------
+           Activity map points
+           --------------------------------------------------------- */
+      .map-point {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        transform:
+          translate(-50%, -50%);
+        border:
+          2px solid var(--activity-color);
+        border-radius: 50%;
+        background: white;
+        pointer-events: auto;
+        cursor: pointer;
+        transition:
+          transform 0.12s,
+          background 0.12s,
+          box-shadow 0.12s;
+      }
+
+      .map-point.food {
+        border-color: var(--food-color);
+      }
+      .map-point.activity {
+        border-color: var(--activity-color);
+      }
+      .map-point.food.highlighted {
+        background: var(--food-color);
+      }
+      .map-point.activity.highlighted {
+        background: var(--activity-color);
+      }
+      .map-point.highlighted {
+        transform:
+          translate(-50%, -50%) scale(1.5);
+        box-shadow:
+          0 0 0 3px white,
+          0 0 0 5px rgba(255, 190, 0, 0.85);
+        z-index: 10;
+      }
+
+      .map-point-tooltip {
+        position: absolute;
+        left: 50%;
+        bottom: 18px;
+        transform:
+          translateX(-50%);
+        padding: 4px 7px;
+        white-space: nowrap;
+        font-size: 11px;
+        background: white;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        box-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .map-point:hover .map-point-tooltip {
+        opacity: 1;
+      }
+
+      #debugCoordinates {
+        display: none;
+        margin: 8px 0;
+        padding: 10px;
+        background: #eef6ff;
+        border: 1px solid #0078d4;
+        border-radius: 5px;
+        font: 12px/1.4 monospace;
+        white-space: pre-wrap;
+      }
+
+      body.debug-mode #debugCoordinates {
+        display: block;
+      }
+
+      body.debug-mode #mapImage {
+        cursor: crosshair;
+      }
+      
+      .footnote {
+        font-size: 12px;
+        /*font-weight: bold;*/
+        margin: 8px 0;
+        padding: 3px;
+        background: #eeeeee;
+        border: 1px solid #dddddd;
+        border-radius: 5px;
+      }
+
+      /* ---------------------------------------------------------
+           Error
+           --------------------------------------------------------- */
+      #hotelName {
+        margin: 4px 0 8px;
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 1.2;
+      }
+      #error {
+        display: none;
+        margin: 8px 0;
+        padding: 8px;
+        color: #8b0000;
+        background: #ffeaea;
+        border: 1px solid #d00;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 12px;
+      }
+
+      /* ---------------------------------------------------------
+           Debug JSON editor
+           --------------------------------------------------------- */
+      #debugEditor { display:none; margin:14px 0; padding:10px; background:#fff; border:1px solid #0078d4; border-radius:6px; }
+      body.debug-mode #debugEditor { display:block; }
+      .debug-editor-toolbar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+      .debug-editor-section { margin:12px 0; }
+      .debug-editor-hint { margin:6px 0 10px; padding:7px; background:#fffbe6; border:1px solid #e0b400; border-radius:4px; font-size:12px; }
+      .debug-editor-row { display:grid; grid-template-columns:minmax(120px,1fr) 2fr auto; gap:6px; align-items:start; padding:6px 0; border-bottom:1px solid #eee; }
+      .debug-editor-row.editing { background:#eef6ff; padding:6px; }
+      .debug-editor-summary { white-space:pre-wrap; font-size:12px; }
+      .debug-editor-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:5px; }
+      .debug-editor-fields label { display:flex; flex-direction:column; gap:2px; font-size:11px; }
+      .debug-editor-fields input, .debug-editor-fields select, .debug-editor-fields textarea { width:100%; font:inherit; padding:4px; }
+      .debug-editor-fields label.check { flex-direction:row; align-items:center; }
+      .debug-editor-fields label.check input { width:auto; }
+      .debug-time-list { grid-column:1 / -1; margin-left:12px; }
+      .debug-editor-actions { display:flex; gap:4px; }
+      .debug-editor-button { padding:4px 7px; cursor:pointer; }
+      /* ---------------------------------------------------------
+           Very narrow displays
+           --------------------------------------------------------- */
+      @media (max-width: 500px) {
+        :root {
+          --label-width: 120px;
+        }
+
+        .languageButton {
+          padding: 3px 6px;
+          font-size: 12px;
+        }
+
+        .timeline-title {
+          font-size: 15px;
+        }
+
+        .entry-name {
+          font-size: 10px;
+          line-height: 12px;
+        }
+
+        .hour {
+          font-size: 8px;
+        }
+        .timeline-header {
+          grid-template-columns: var(--label-width) repeat(12, minmax(0, 1fr));
+        }
+        .timeline-row {
+          grid-template-columns: var(--label-width) repeat(24, minmax(0, 1fr));
+        }
+        .hour-odd {
+          display: none;
+        }
+
+
+        .time-block {
+          font-size: 8px;
+          line-height: 9px;
+        }
+
+        .time-short-label { font-size: 10px; line-height: 12px; }
+        .time-tag {
+          font-size: 9px;
+          line-height: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Flat language selector -->
+      <div id="languageBar"></div>
+      <div id="error"></div>
+      <div id="hotelName"></div>
+      <!-- Food timeline -->
+      <section class="timeline-section">
+        <div class="timeline-title" id="foodTitle"></div>
+        <div class="timeline-wrapper">
+          <div id="foodTimeline" class="timeline"></div>
+        </div>
+      </section>
+      <!-- Map -->
+      <div id="mapArea">
+        <div id="mapContainer">
+          <img id="mapImage" src="map.png" alt="Map">
+          <div id="mapOverlay"></div>
+        </div>
+      </div>
+      <!-- Activity timeline -->
+      <section class="timeline-section">
+        <div class="timeline-title" id="activityTitle"></div>
+        <div class="timeline-wrapper">
+          <div id="activityTimeline" class="timeline"></div>
+        </div>
+      </section>
+      <div id="footnote" class="footnote"></div>
+      <div id="debugCoordinates"></div>
+      <div id="debugEditor"></div>
+    </div>
+    <!--
+    Embedded application data.
+
+    Language order:
+        0 = Turkish
+        1 = English
+        2 = German
+        3 = Russian
+
+    The "names" arrays and "tag" arrays use this same order.
+-->
+        <!-- Application data is loaded from mapData.json at startup. -->
+
+    <script>
+      "use strict";
+      /*
+       * Display an initialization error on the page.
+       */
+      function showError(message) {
+        const errorElement = document.getElementById("error");
+        errorElement.textContent = message;
+        errorElement.style.display = "block";
+        console.error(message);
+      }
+      (async function() {
+        try {
+          const languageBar = document.getElementById("languageBar");
+          const hotelName = document.getElementById("hotelName");
+          const foodTitle = document.getElementById("foodTitle");
+          const activityTitle = document.getElementById("activityTitle");
+          const foodTimeline = document.getElementById("foodTimeline");
+          const activityTimeline = document.getElementById("activityTimeline");
+          const mapOverlay = document.getElementById("mapOverlay");
+          const mapImage = document.getElementById("mapImage");
+          const footnote = document.getElementById("footnote");
+          const debugCoordinates = document.getElementById("debugCoordinates");
+          const debugEditor = document.getElementById("debugEditor");
+          /*
+           * Read JSON.
+           */
+          const response = await fetch("mapData.json", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error("mapData.json could not be loaded (HTTP " + response.status + ").");
+          }
+          const data = await response.json();
+          hotelName.textContent = data.hotelName || "";
+          if (data.hotelName) document.title = data.hotelName + " - Interactive Map";
+          /*
+           * Basic validation.
+           */
+          if (!Array.isArray(data.languages)) {
+            throw new Error("languages must be an array.");
+          }
+          if (!Array.isArray(data.entries)) {
+            throw new Error("entries must be an array.");
+          }
+          if (data.languages.length === 0) {
+            throw new Error("At least one language is required.");
+          }
+          let selectedLanguageIndex = 0;
+          let persistentEntryIndex = null;
+          let debugEditingEntry = null;
+          let debugPositionInputs = null;
+          function initDebugCoordinates() {
+            if (window.location.hash !== "#debug") return;
+            document.body.classList.add("debug-mode");
+            if (!debugCoordinates) return;
+            debugCoordinates.textContent = "Debug: Auf die Karte klicken, um JSON-Koordinaten zu ermitteln.";
+            mapImage.addEventListener("click", function(event) {
+              const rect = mapImage.getBoundingClientRect();
+              const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+              const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+              debugCoordinates.textContent = '"pos": [' + x.toFixed(4) + ', ' + y.toFixed(4) + ']';
+              if (debugEditingEntry && debugPositionInputs) { debugEditingEntry.pos=[Number(x.toFixed(4)),Number(y.toFixed(4))]; debugPositionInputs.x.value=x.toFixed(4); debugPositionInputs.y.value=y.toFixed(4); }
+            });
+          }
+
+          /* ---------------------------------------------------------
+             Language detection
+             --------------------------------------------------------- */
+          function detectBrowserLanguage() {
+            let browserLanguages = [];
+            if (Array.isArray(navigator.languages) && navigator.languages.length > 0) {
+              browserLanguages = navigator.languages;
+            } else if (navigator.language) {
+              browserLanguages = [
+                navigator.language
+              ];
+            }
+            for (let i = 0; i < browserLanguages.length; i++) {
+              const browserCode = String(browserLanguages[i]).toLowerCase().split("-")[0];
+              for (let j = 0; j < data.languages.length; j++) {
+                if (String(data.languages[j].code).toLowerCase() === browserCode) {
+                  return j;
+                }
+              }
+            }
+            return 0;
+          }
+          /* ---------------------------------------------------------
+             Language selector
+             --------------------------------------------------------- */
+          function buildLanguageSelector() {
+            languageBar.innerHTML = "";
+            for (let i = 0; i < data.languages.length; i++) {
+              const language = data.languages[i];
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "languageButton";
+              button.dataset.languageIndex = String(i);
+              button.textContent = (language.flag || "") + " " + language.lang;
+              button.addEventListener("click", function() {
+                selectedLanguageIndex = i;
+                updateLanguage();
+              });
+              languageBar.appendChild(button);
+            }
+          }
+
+          function updateLanguageButtons() {
+            const buttons = languageBar.querySelectorAll(".languageButton");
+            for (let i = 0; i < buttons.length; i++) {
+              buttons[i].classList.toggle("selected", Number(buttons[i].dataset.languageIndex) === selectedLanguageIndex);
+            }
+          }
+          /* ---------------------------------------------------------
+             Entry names and tags
+             --------------------------------------------------------- */
+          function getLocalizedValue(values) {
+            if (!Array.isArray(values) || values.length === 0) {
+              return "";
+            }
+            return (values[selectedLanguageIndex] || values[0] || "");
+          }
+
+          function getEntryName(entry) {
+            return getLocalizedValue(entry.names);
+          }
+
+          function getTimeTag(timeEntry) {
+            return getLocalizedValue(timeEntry.tag);
+          }
+          /* ---------------------------------------------------------
+             Time handling
+             --------------------------------------------------------- */
+          function timeToMinutes(value) {
+            const parts = String(value).split(":");
+            if (parts.length !== 2) {
+              return null;
+            }
+            const hours = Number(parts[0]);
+            const minutes = Number(parts[1]);
+            if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+              return null;
+            }
+            return (hours * 60 + minutes);
+          }
+
+          function parseTimeRange(value) {
+            const parts = String(value).split("-");
+            if (parts.length !== 2) {
+              return null;
+            }
+            const start = timeToMinutes(parts[0]);
+            let end = timeToMinutes(parts[1]);
+            if (start === null || end === null) {
+              return null;
+            }
+            if (end === 0 && start > 0) {
+              end = 1440;
+            }
+            if (end <= start) {
+              return null;
+            }
+            return {
+              start: start,
+              end: end
+            };
+          }
+          /* ---------------------------------------------------------
+             Timeline header
+             --------------------------------------------------------- */
+          function createHeader() {
+            const header = document.createElement("div");
+            header.className = "timeline-header";
+            const empty = document.createElement("div");
+            empty.className = "timeline-header-label";
+            header.appendChild(empty);
+            for (let hour = 0; hour < 24; hour++) {
+              const cell = document.createElement("div");
+              cell.className = "hour" + (hour % 2 ? " hour-odd" : "");
+              cell.textContent = String(hour).padStart(2, "0");
+              header.appendChild(cell);
+            }
+            return header;
+          }
+          /* ---------------------------------------------------------
+             Selection
+             --------------------------------------------------------- */
+          function highlightEntry(entryIndex, highlighted) {
+            const elements = document.querySelectorAll('[data-entry-index="' + entryIndex + '"]');
+            for (let i = 0; i < elements.length; i++) {
+              elements[i].classList.toggle("highlighted", highlighted);
+            }
+          }
+          /*
+           * Update the selected state of time blocks.
+           *
+           * This is separate from "highlighted" because the selected
+           * block must also display its tag bubble.
+           */
+          function updateSelectedTimeBlocks() {
+            const blocks = document.querySelectorAll(".time-block");
+            for (let i = 0; i < blocks.length; i++) {
+              const entryIndex = Number(blocks[i].dataset.entryIndex);
+              const isSelected = entryIndex === persistentEntryIndex;
+              blocks[i].classList.toggle("selected", isSelected);
+              if (!isSelected) {
+                blocks[i].classList.remove("tag-in-front");
+                const parentRow = blocks[i].closest(".timeline-row");
+                if (parentRow) parentRow.classList.remove("tag-row-in-front");
+              }
+            }
+          }
+
+          function selectEntry(entryIndex) {
+            if (persistentEntryIndex !== null) {
+              highlightEntry(persistentEntryIndex, false);
+            }
+            if (persistentEntryIndex === entryIndex) {
+              persistentEntryIndex = null;
+              updateSelectedTimeBlocks();
+              return;
+            }
+            persistentEntryIndex = entryIndex;
+            highlightEntry(entryIndex, true);
+            updateSelectedTimeBlocks();
+          }
+          /* ---------------------------------------------------------
+             Timeline row
+             --------------------------------------------------------- */
+          function createTimelineRow(entry, entryIndex) {
+            const row = document.createElement("div");
+            row.className = "timeline-row";
+            /*
+             * Entry name.
+             */
+            const name = document.createElement("div");
+            name.className = "entry-name";
+            name.dataset.entryIndex = String(entryIndex);
+            name.textContent = getEntryName(entry);
+            name.addEventListener("mouseenter", function() {
+              highlightEntry(entryIndex, true);
+            });
+            name.addEventListener("mouseleave", function() {
+              highlightEntry(entryIndex, persistentEntryIndex === entryIndex);
+            });
+            name.addEventListener("click", function() {
+              selectEntry(entryIndex);
+            });
+            row.appendChild(name);
+            /*
+             * Time area.
+             */
+            const grid = document.createElement("div");
+            grid.className = "time-grid";
+            if (Array.isArray(entry.times)) {
+              const parsedRanges = entry.times.map(function(item) {
+                const value = typeof item === "string" ? item :
+                  (item && typeof item.time === "string" ? item.time : "");
+                return parseTimeRange(value);
+              });
+              for (let i = 0; i < entry.times.length; i++) {
+                const timeEntry = entry.times[i];
+                /*
+                 * The new format uses:
+                 *
+                 * {
+                 *     "time": "08:00-10:00",
+                 *     "tag": [...]
+                 * }
+                 *
+                 * For backwards compatibility, a plain
+                 * string is also accepted.
+                 */
+                let timeString;
+                if (typeof timeEntry === "string") {
+                  timeString = timeEntry;
+                } else if (timeEntry && typeof timeEntry.time === "string") {
+                  timeString = timeEntry.time;
+                } else {
+                  continue;
+                }
+                const range = parseTimeRange(timeString);
+                if (!range) {
+                  continue;
+                }
+                const block = document.createElement("div");
+                block.className = "time-block " + entry.type;
+                if (parsedRanges.some(function(other, j) { return j !== i && other && (other.start === range.end || (range.end > other.start && range.end < other.end)); })) block.classList.add("touches-next");
+                if (parsedRanges.some(function(other, j) { return j !== i && other && other.start === range.end; })) block.classList.add("touches-exact-next");
+                if (parsedRanges.some(function(other, j) { return j !== i && other && (other.end === range.start || (range.start > other.start && range.start < other.end)); })) block.classList.add("touches-prev");
+                block.dataset.entryIndex = String(entryIndex);
+                /*
+                 * Position within the complete
+                 * 24-hour range.
+                 */
+                block.style.left = (range.start / 1440 * 100) + "%";
+                block.style.width = (
+                  (range.end - range.start) / 1440 * 100) + "%";
+                /*
+                 * Split the interval at the hyphen.
+                 *
+                 * This gives the browser an explicit
+                 * line-break opportunity.
+                 */
+                const showTimeInCell = !(timeEntry && typeof timeEntry === "object" && timeEntry.showTimeInCell === false);
+                const showTimeInTag = !!(timeEntry && typeof timeEntry === "object" && timeEntry.showTimeInTag === true);
+                const timeText = document.createElement("span"); timeText.className = "time-text"; timeText.style.display = showTimeInCell ? "inline" : "none";
+                const hyphenIndex = timeString.indexOf("-");
+                if (hyphenIndex >= 0) {
+                  const firstPart = timeString.substring(0, hyphenIndex);
+                  const secondPart = timeString.substring(hyphenIndex + 1);
+                  timeText.appendChild(document.createTextNode(firstPart));
+                  const hyphen = document.createElement("span");
+                  hyphen.className = "time-hyphen";
+                  hyphen.textContent = "-";
+                  timeText.appendChild(hyphen);
+                  const timeBreak = document.createElement("span");
+                  timeBreak.className = "time-break";
+                  timeText.appendChild(timeBreak);
+                  timeText.appendChild(document.createTextNode(secondPart));
+                } else {
+                  timeText.textContent = timeString;
+                }
+                block.appendChild(timeText);
+                if (timeEntry && typeof timeEntry === "object" && timeEntry.short != null && String(timeEntry.short) !== "") {
+                  const shortLabel = document.createElement("span"); shortLabel.className = "time-short-label"; shortLabel.textContent = String(timeEntry.short); block.appendChild(shortLabel);
+                }
+                /*
+                 * Optional multilingual tag.
+                 */
+                if (timeEntry && typeof timeEntry === "object") {
+                  const tagText = Array.isArray(timeEntry.tag) ? getTimeTag(timeEntry) : "";
+                  if (tagText || showTimeInTag) {
+                    const tag = document.createElement("div");
+                    tag.className = "time-tag";
+                    tag.textContent = showTimeInTag ? timeString + (tagText ? "\n" + tagText : "") : tagText;
+                    function bringTagToFront(event) {
+                      if (!block.classList.contains("selected")) return;
+                      document.querySelectorAll(".timeline-row.tag-row-in-front").forEach(function(otherRow) { otherRow.classList.remove("tag-row-in-front"); });
+                      document.querySelectorAll(".time-block.tag-in-front").forEach(function(otherBlock) { otherBlock.classList.remove("tag-in-front"); });
+                      row.classList.add("tag-row-in-front");
+                      block.classList.add("tag-in-front");
+                      if (event) event.stopPropagation();
+                    }
+                    tag.addEventListener("mouseenter", bringTagToFront);
+                    tag.addEventListener("pointerdown", bringTagToFront);
+                    tag.addEventListener("touchstart", bringTagToFront, { passive: true });
+                    tag.addEventListener("click", bringTagToFront);
+                    block.appendChild(tag);
+                  }
+                }
+                block.title = timeString;
+                block.addEventListener("mouseenter", function() {
+                  highlightEntry(entryIndex, true);
+                });
+                block.addEventListener("mouseleave", function() {
+                  highlightEntry(entryIndex, persistentEntryIndex === entryIndex);
+                });
+                block.addEventListener("click", function() {
+                  selectEntry(entryIndex);
+                });
+                grid.appendChild(block);
+              }
+            }
+            row.appendChild(grid);
+            return row;
+          }
+          /* ---------------------------------------------------------
+             Build timeline
+             --------------------------------------------------------- */
+          function buildTimeline(container, type) {
+            container.innerHTML = "";
+            container.appendChild(createHeader());
+            for (let i = 0; i < data.entries.length; i++) {
+              const entry = data.entries[i];
+              if (entry.type !== type) {
+                continue;
+              }
+              container.appendChild(createTimelineRow(entry, i));
+            }
+          }
+          /* ---------------------------------------------------------
+             Map points
+             --------------------------------------------------------- */
+          function buildMapPoints() {
+            mapOverlay.innerHTML = "";
+            for (let i = 0; i < data.entries.length; i++) {
+              const entry = data.entries[i];
+              if (!Array.isArray(entry.pos) || entry.pos.length < 2) {
+                continue;
+              }
+              const x = Number(entry.pos[0]);
+              const y = Number(entry.pos[1]);
+              if (!Number.isFinite(x) || !Number.isFinite(y)) {
+                continue;
+              }
+              const point = document.createElement("div");
+              point.className = "map-point " + entry.type;
+              point.dataset.entryIndex = String(i);
+              point.style.left = (x * 100) + "%";
+              point.style.top = (y * 100) + "%";
+              const tooltip = document.createElement("div");
+              tooltip.className = "map-point-tooltip";
+              tooltip.textContent = getEntryName(entry);
+              point.appendChild(tooltip);
+              point.addEventListener("mouseenter", function() {
+                highlightEntry(i, true);
+              });
+              point.addEventListener("mouseleave", function() {
+                highlightEntry(i, persistentEntryIndex === i);
+              });
+              point.addEventListener("click", function(event) {
+                event.stopPropagation();
+                selectEntry(i);
+              });
+              mapOverlay.appendChild(point);
+            }
+          }
+          function updateCurrentTimeIndicators() {
+            const now = new Date();
+            const minutes = now.getHours() * 60 + now.getMinutes();
+            const left = (minutes / 1440 * 100) + "%";
+            const label = String(now.getHours()).padStart(2, "0") + ":" +
+              String(now.getMinutes()).padStart(2, "0");
+            const lines = document.querySelectorAll(".current-time-line");
+            for (let i = 0; i < lines.length; i++) {
+              lines[i].style.left = left;
+              const badge = lines[i].querySelector(".current-time-badge");
+              if (badge) badge.textContent = label;
+            }
+          }
+
+          function addCurrentTimeIndicator(container) {
+            const grids = container.querySelectorAll(".time-grid");
+            for (let i = 0; i < grids.length; i++) {
+              const line = document.createElement("div");
+              line.className = "current-time-line";
+              if (i === 0) {
+                const badge = document.createElement("div");
+                badge.className = "current-time-badge";
+                line.appendChild(badge);
+              }
+              grids[i].appendChild(line);
+            }
+          }
+
+          /* ---------------------------------------------------------
+             Language update
+             --------------------------------------------------------- */
+          function updateLanguage() {
+            const language = data.languages[selectedLanguageIndex];
+            /*
+             * Titles are now completely data-driven.
+             */
+            foodTitle.textContent = language.foodTitle || "";
+            activityTitle.textContent = language.activityTitle || "";
+            footnote.textContent = language.footnote || "";
+            updateLanguageButtons();
+            buildTimeline(foodTimeline, "food");
+            buildTimeline(activityTimeline, "activity");
+            addCurrentTimeIndicator(foodTimeline);
+            addCurrentTimeIndicator(activityTimeline);
+            updateCurrentTimeIndicators();
+            buildMapPoints();
+            /*
+             * Restore selected entry.
+             */
+            if (persistentEntryIndex !== null) {
+              highlightEntry(persistentEntryIndex, true);
+            }
+            updateSelectedTimeBlocks();
+            document.documentElement.lang = language.code;
+          }
+          /* ---------------------------------------------------------
+             Debug JSON editor
+             --------------------------------------------------------- */
+          function refreshAppFromData() {
+            hotelName.textContent = data.hotelName || "";
+            buildLanguageSelector();
+            if (selectedLanguageIndex >= data.languages.length) selectedLanguageIndex = 0;
+            updateLanguage();
+            if (document.body.classList.contains("debug-mode")) buildDebugEditor();
+          }
+          function textInput(label, value, onChange, multiline) {
+            const wrap = document.createElement("label");
+            wrap.appendChild(document.createTextNode(label));
+            const input = multiline ? document.createElement("textarea") : document.createElement("input");
+            if (!multiline) input.type = "text";
+            input.value = value == null ? "" : String(value);
+            input.addEventListener("input", function(){ onChange(input.value); });
+            wrap.appendChild(input);
+            return wrap;
+          }
+          function checkInput(label, value, onChange) {
+            const wrap=document.createElement("label"); wrap.className="check";
+            const input=document.createElement("input"); input.type="checkbox"; input.checked=!!value;
+            input.addEventListener("change",function(){onChange(input.checked);});
+            wrap.appendChild(input); wrap.appendChild(document.createTextNode(label)); return wrap;
+          }
+          function addButton(text, handler) {
+            const b=document.createElement("button"); b.type="button"; b.className="debug-editor-button"; b.textContent=text; b.addEventListener("click",handler); return b;
+          }
+          function languageSummary(language) {
+            return (language.flag || "") + " " + (language.lang || language.code || "Language") + " | " + (language.foodTitle || "") + " | " + (language.activityTitle || "");
+          }
+          function entrySummary(entry) {
+            const name=(entry.names && entry.names[0]) || "(unnamed)";
+            return name + " | " + (entry.type || "") + " | " + ((entry.times || []).length) + " time window(s)";
+          }
+          function buildDebugEditor() {
+            if (!debugEditor || !document.body.classList.contains("debug-mode")) return;
+            debugEditor.innerHTML="";
+            const title=document.createElement("h2"); title.textContent="JSON editor"; debugEditor.appendChild(title);
+            const toolbar=document.createElement("div"); toolbar.className="debug-editor-toolbar";
+            toolbar.appendChild(textInput("Hotel name",data.hotelName || "",function(v){data.hotelName=v; hotelName.textContent=v;}));
+            toolbar.appendChild(addButton("Download mapData.json",function(){
+              const blob=new Blob([JSON.stringify(data,null,2)+"\n"],{type:"application/json"});
+              const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="mapData.json"; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},0);
+            }));
+            debugEditor.appendChild(toolbar);
+            const langSec=document.createElement("div"); langSec.className="debug-editor-section";
+            const lh=document.createElement("h3"); lh.textContent="Languages"; langSec.appendChild(lh);
+            data.languages.forEach(function(language,index){
+              const row=document.createElement("div"); row.className="debug-editor-row";
+              const summary=document.createElement("div"); summary.className="debug-editor-summary"; summary.textContent=languageSummary(language); row.appendChild(summary);
+              const fields=document.createElement("div"); fields.className="debug-editor-fields"; fields.style.display="none"; row.appendChild(fields);
+              function edit(){ document.querySelectorAll("#debugEditor .editing").forEach(function(r){ if(r!==row){r.classList.remove("editing"); const f=r.querySelector(".debug-editor-fields"); if(f)f.style.display="none";} }); row.classList.add("editing"); fields.style.display="grid"; }
+              function done(){ row.classList.remove("editing"); fields.style.display="none"; summary.textContent=languageSummary(language); refreshAppFromData(); }
+              fields.appendChild(textInput("Language",language.lang,function(v){language.lang=v;}));
+              fields.appendChild(textInput("Code",language.code,function(v){language.code=v;}));
+              fields.appendChild(textInput("Flag",language.flag,function(v){language.flag=v;}));
+              fields.appendChild(textInput("Food title",language.foodTitle,function(v){language.foodTitle=v;}));
+              fields.appendChild(textInput("Activity title",language.activityTitle,function(v){language.activityTitle=v;}));
+              fields.appendChild(textInput("Footnote",language.footnote,function(v){language.footnote=v;},true));
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); row.appendChild(actions); langSec.appendChild(row);
+            });
+            langSec.appendChild(addButton("+ Language",function(){data.languages.push({lang:"New language",code:"",flag:"",foodTitle:"",activityTitle:"",footnote:""}); buildDebugEditor();}));
+            debugEditor.appendChild(langSec);
+            const entrySec=document.createElement("div"); entrySec.className="debug-editor-section";
+            const eh=document.createElement("h3"); eh.textContent="Activities / entries"; entrySec.appendChild(eh);
+            const hint=document.createElement("div"); hint.className="debug-editor-hint"; hint.textContent="Position helper: while an activity / entry row is in Edit mode, click the hotel map above to copy the clicked coordinates directly into Position X and Position Y."; entrySec.appendChild(hint);
+            data.entries.forEach(function(entry,index){
+              const row=document.createElement("div"); row.className="debug-editor-row";
+              const summary=document.createElement("div"); summary.className="debug-editor-summary"; summary.textContent=entrySummary(entry); row.appendChild(summary);
+              const fields=document.createElement("div"); fields.className="debug-editor-fields"; fields.style.display="none"; row.appendChild(fields);
+              function edit(){ document.querySelectorAll("#debugEditor .editing").forEach(function(r){if(r!==row){r.classList.remove("editing");const f=r.querySelector(".debug-editor-fields");if(f)f.style.display="none";}}); row.classList.add("editing"); fields.style.display="grid"; debugEditingEntry=entry; debugPositionInputs={x:positionXInput,y:positionYInput}; }
+              function done(){ debugEditingEntry=null; debugPositionInputs=null; row.classList.remove("editing"); fields.style.display="none"; summary.textContent=entrySummary(entry); refreshAppFromData(); }
+              data.languages.forEach(function(language,li){ fields.appendChild(textInput("Name " + (language.code||li), (entry.names||[])[li]||"", function(v){entry.names=entry.names||[];entry.names[li]=v;})); });
+              const positionXField=textInput("Position X",entry.pos&&entry.pos[0],function(v){entry.pos=entry.pos||[0,0];entry.pos[0]=Number(v);});
+              const positionYField=textInput("Position Y",entry.pos&&entry.pos[1],function(v){entry.pos=entry.pos||[0,0];entry.pos[1]=Number(v);});
+              const positionXInput=positionXField.querySelector("input"), positionYInput=positionYField.querySelector("input"); fields.appendChild(positionXField); fields.appendChild(positionYField);
+              const typeWrap=document.createElement("label"); typeWrap.appendChild(document.createTextNode("Type")); const sel=document.createElement("select"); ["food","activity"].forEach(function(t){const o=document.createElement("option");o.value=t;o.textContent=t;if(entry.type===t)o.selected=true;sel.appendChild(o);});sel.addEventListener("change",function(){entry.type=sel.value;});typeWrap.appendChild(sel);fields.appendChild(typeWrap);
+              const timeList=document.createElement("div"); timeList.className="debug-time-list"; const th=document.createElement("strong"); th.textContent="Time windows"; timeList.appendChild(th);
+              entry.times=Array.isArray(entry.times)?entry.times:[];
+              entry.times.forEach(function(timeEntry,ti){ if(typeof timeEntry==="string"){timeEntry={time:timeEntry};entry.times[ti]=timeEntry;} const tf=document.createElement("div");tf.className="debug-editor-fields";tf.style.margin="6px 0";
+                tf.appendChild(textInput("Time",timeEntry.time||"",function(v){timeEntry.time=v;}));
+                data.languages.forEach(function(language,li){tf.appendChild(textInput("Tag "+(language.code||li),(timeEntry.tag||[])[li]||"",function(v){timeEntry.tag=timeEntry.tag||[];timeEntry.tag[li]=v;},true));});
+                tf.appendChild(textInput("Short",timeEntry.short||"",function(v){timeEntry.short=v;}));
+                tf.appendChild(checkInput("Show time in cell",timeEntry.showTimeInCell!==false,function(v){timeEntry.showTimeInCell=v;}));
+                tf.appendChild(checkInput("Show time in tag",timeEntry.showTimeInTag===true,function(v){timeEntry.showTimeInTag=v;}));
+                tf.appendChild(addButton("Remove window",function(){entry.times.splice(ti,1);buildDebugEditor();})); timeList.appendChild(tf);
+              });
+              timeList.appendChild(addButton("+ Time window",function(){entry.times.push({time:"00:00-00:00",tag:[],showTimeInCell:true,showTimeInTag:false});buildDebugEditor();})); fields.appendChild(timeList);
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); actions.appendChild(addButton("Delete",function(){data.entries.splice(index,1);refreshAppFromData();})); row.appendChild(actions); entrySec.appendChild(row);
+            });
+            entrySec.appendChild(addButton("+ Activity / entry",function(){data.entries.push({names:data.languages.map(function(){return "";}),pos:[0.5,0.5],times:[],type:"activity"});buildDebugEditor();}));
+            debugEditor.appendChild(entrySec);
+          }
+          /* ---------------------------------------------------------
+             Initialization
+             --------------------------------------------------------- */
+          selectedLanguageIndex = detectBrowserLanguage();
+          initDebugCoordinates();
+          buildLanguageSelector();
+          updateLanguage();
+          buildDebugEditor();
+          setInterval(updateCurrentTimeIndicators, 60000);
+          console.log("Interactive map initialized.", data);
+          if ("serviceWorker" in navigator && location.protocol !== "file:") {
+            navigator.serviceWorker.register("service-worker.js").catch(function(error) {
+              console.warn("Service worker registration failed.", error);
+            });
+          }
+        } catch (error) {
+          showError("Application initialization failed:\n\n" + error.message);
+        }
+      })();
+    </script>
+  </body>
+</html>

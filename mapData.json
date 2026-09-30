@@ -1,0 +1,605 @@
+{
+    "hotelName": "Hane Family Resort",
+    "languages": [
+        {
+            "lang": "Türkçe",
+            "code": "tr",
+            "flag": "🇹🇷",
+            "foodTitle": "Yiyecek",
+            "activityTitle": "Aktiviteler",
+            "footnote": "* Animasyon: Pazar günü tatil"
+        },
+        {
+            "lang": "English",
+            "code": "en",
+            "flag": "🇬🇧",
+            "foodTitle": "Food / Drinks",
+            "activityTitle": "Activities",
+            "footnote": "* Animation: Sunday Off"
+        },
+        {
+            "lang": "Deutsch",
+            "code": "de",
+            "flag": "🇩🇪",
+            "foodTitle": "Essen / Trinken",
+            "activityTitle": "Aktivitäten",
+            "footnote": "* Animation hat Sonntags frei"
+        },
+        {
+            "lang": "Русский",
+            "code": "ru",
+            "flag": "🇷🇺",
+            "foodTitle": "Еда",
+            "activityTitle": "Активности",
+            "footnote": "* Анимация: воскресенье выходной"
+        }
+    ],
+    "entries": [
+        {
+            "names": [
+                "Ana Restoran",
+                "Main Restaurant",
+                "Hauptrestaurant",
+                "Главный ресторан"
+            ],
+            "pos": [
+                0.32,
+                0.18
+            ],
+            "times": [
+                {
+                    "time": "07:00-10:00",
+                    "tag": [
+                        "Kahvaltı\n10:00-10:30\nGeç Kahvaltı",
+                        "Breakfast\n10:00-10:30\nLate Breakfast",
+                        "Frühstück\n10:00-10:30\nSpätaufsteherfrühstück",
+                        "Завтрак\n10:00-10:30\nПоздний завтрак"
+                    ]
+                },
+                {
+                    "time": "10:00-10:30",
+                    "tag.dontshow": [
+                        "Late Kahvaltı",
+                        "Late Breakfast",
+                        "Spätaufsteherfrühstück",
+                        "Late Завтрак"
+                    ],
+                    "showTimeInCell": false,
+                    "showTimeInTag": false
+                },
+                {
+                    "time": "12:30-14:00",
+                    "tag": [
+                        "Öğle Yemeği",
+                        "Lunch",
+                        "Mittagessen",
+                        "Обед"
+                    ]
+                },
+                {
+                    "time": "19:00-21:00",
+                    "tag": [
+                        "Akşam Yemeği",
+                        "Dinner",
+                        "Abendessen",
+                        "Ужин"
+                    ]
+                },
+                {
+                    "time": "00:00-00:30",
+                    "tag": [
+                        "Gece Aperatif",
+                        "Midnight Snack",
+                        "Mitternachtsnack",
+                        "ToлyHOYHbIй nepekyc"
+                    ],
+                    "showTimeInCell": false,
+                    "showTimeInTag": true
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "A'la Carte \nMoonlight Restaurant",
+                "A'la Carte \nMoonlight Restaurant",
+                "A'la Carte \nMoonlight Restaurant",
+                "A'la Carte \nMoonlight Restaurant"
+            ],
+            "pos": [
+                0.65,
+                0.33
+            ],
+            "times": [
+                {
+                    "time": "19:00-21:00"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Coffee Break House",
+                "Coffee Break House",
+                "Coffee Break House",
+                "Coffee Break House"
+            ],
+            "pos": [
+                0.41,
+                0.54
+            ],
+            "times": [
+                {
+                    "time": "11:00-18:00"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "todo",
+                "Waffels",
+                "Waffeln",
+                "todo"
+            ],
+            "pos": [
+                0.39,
+                0.5
+            ],
+            "times": [
+                {
+                    "time": "11:00-17:00"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Tropic Snack Bar",
+                "Tropic Snack Bar",
+                "Tropic Snack Bar",
+                "Tropic Snack Bar"
+            ],
+            "pos": [
+                0.75,
+                0.2
+            ],
+            "times": [
+                {
+                    "time": "10:00-18:00",
+                    "short.noshow": "🍹"
+                },
+                {
+                    "time": "13:30-15:45",
+                    "tag": [
+                        "Atıştırmalıklar",
+                        "Snacks",
+                        "Snacks",
+                        "Закуски"
+                    ],
+                    "showTimeInCell": false,
+                    "showTimeInTag": true,
+                    "short": "🍽️"
+                },
+                {
+                    "time": "16:00-17:00",
+                    "tag": [
+                        "Dondurma",
+                        "Ice Cream",
+                        "Eis",
+                        "Мороженое"
+                    ],
+                    "showTimeInCell": false,
+                    "showTimeInTag": true,
+                    "short": "🍨"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Beach Bar",
+                "Beach Bar",
+                "Beach Bar",
+                "Beach Bar"
+            ],
+            "pos": [
+                0.96,
+                0.33
+            ],
+            "times": [
+                {
+                    "time": "09:30-17:30",
+                    "short.noshow": "🍹"
+                },
+                {
+                    "time": "11:30-15:45",
+                    "tag": [
+                        "Atıştırmalıklar",
+                        "Snacks",
+                        "Snacks",
+                        "Закуски"
+                    ],
+                    "showTimeInCell": false,
+                    "showTimeInTag": true,
+                    "short": "🍽️"
+                },
+                {
+                    "time": "16:00-17:00",
+                    "tag": [
+                        "Dondurma, Kahve-Pasta",
+                        "Ice Cream, Coffee-Cakes",
+                        "Eis, Kaffee-Kuchen",
+                        "Мороженое, кофе-пирожные"
+                    ],
+                    "showTimeInCell": false,
+                    "showTimeInTag": true,
+                    "short": "🍨"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "todo",
+                "todo",
+                "Fladenbrot",
+                "todo"
+            ],
+            "pos": [
+                0.57,
+                0.22
+            ],
+            "times": [
+                {
+                    "time": "11:00-15:45"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Lobby Bar",
+                "Lobby Bar",
+                "Lobby Bar",
+                "Lobby Bar"
+            ],
+            "pos": [
+                0.27,
+                0.28
+            ],
+            "times": [
+                {
+                    "time": "10:00-00:00",
+                    "tag": [
+                        "Dahil",
+                        "Inclusive",
+                        "Inklusiv",
+                        "Включено"
+                    ]
+                },
+                {
+                    "time": "00:00-10:00",
+                    "tag": [
+                        "Ücretli",
+                        "Exclusive",
+                        "Exklusiv",
+                        "Платно"
+                    ]
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Havuz Barı",
+                "Pool Bar",
+                "Pool Bar",
+                "Бар у бассейна"
+            ],
+            "pos": [
+                0.38,
+                0.12
+            ],
+            "times": [
+                {
+                    "time": "10:00-00:00"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Amphi Bar",
+                "Amphi Bar",
+                "Amphi Bar",
+                "Amphi Bar"
+            ],
+            "pos": [
+                0.54,
+                0.25
+            ],
+            "times": [
+                {
+                    "time": "11:00-15:45",
+                    "tag": [
+                        "Atıştırmalıklar",
+                        "Snacks",
+                        "Snacks",
+                        "Закуски"
+                    ],
+                    "short": "🍽️"
+                },
+                {
+                    "time": "15:45-00:00",
+                    "tag": [
+                        "İçecekler",
+                        "Drinks",
+                        "Getränke",
+                        "Напитки"
+                    ],
+                    "short": "🍹"
+                }
+            ],
+            "type": "food"
+        },
+        {
+            "names": [
+                "Çocuk Kulübü *",
+                "Kids Club *",
+                "Kinderclub *",
+                "Детский клуб *"
+            ],
+            "pos": [
+                0.88,
+                0.13
+            ],
+            "times": [
+                {
+                    "time": "09:00-12:00",
+                    "tag": [
+                        "Sabah",
+                        "Morning",
+                        "Vormittag",
+                        "Утро"
+                    ]
+                },
+                {
+                    "time": "14:00-17:00",
+                    "tag": [
+                        "Öğleden sonra",
+                        "Afternoon",
+                        "Nachmittag",
+                        "День"
+                    ]
+                },
+                {
+                    "time": "19:00-20:30",
+                    "tag": [
+                        "Sinema",
+                        "Cinema",
+                        "Kino",
+                        "Кино"
+                    ]
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Mini-Disco *",
+                "Mini-Disco *",
+                "Mini-Disco *",
+                "Мини-диско *"
+            ],
+            "pos": [
+                0.54,
+                0.35
+            ],
+            "times": [
+                {
+                    "time": "20:30-21:30"
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Plaj Otobüsü",
+                "Beach Bus",
+                "Strandbus",
+                "Автобус до пляжа"
+            ],
+            "pos": [
+                0.96,
+                0.37
+            ],
+            "times": [
+                {
+                    "time": "09:00-11:40",
+                    "tag": [
+                        "08:00-00:00\nPlaj çıkışı açık",
+                        "08:00-00:00\nBeach exit open",
+                        "08:00-00:00\nÖffnung Strandausgang",
+                        "08:00-00:00\nВыход на пляж открыт"
+                    ]
+                },
+                {
+                    "time": "12:00-18:00"
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Plaj Aktiviteleri *",
+                "Beach Activities *",
+                "Strandaktivitäten *",
+                "Пляжные активности *"
+            ],
+            "pos": [
+                0.96,
+                0.41
+            ],
+            "times": [
+                {
+                    "time": "10:30-12:00",
+                    "showTimeInCell": false,
+                    "tag": [
+                        "10:30\nBoccia\n11:00\nVoleybol\n11:30\nSu Jimnastiği",
+                        "10:30\nBoccia\n11:00\nVolleyball\n11:30\nWater Gym",
+                        "10:30\nBoccia\n11:00\nVolleyball\n11:30\nWater Gym",
+                        "10:30\nБочча\n11:00\nВолейбол\n11:30\nАквааэробика"
+                    ]
+                },
+                {
+                    "time": "15:30-16:30",
+                    "showTimeInCell": false,
+                    "tag": [
+                        "15:30\nBoccia\n16:00\nVoleybol",
+                        "15:30\nBoccia\n16:00\nVolleyball",
+                        "15:30\nBoccia\n16:00\nVolleyball",
+                        "15:30\nБочча\n16:00\nВолейбол"
+                    ]
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Jimnastik *",
+                "Gym *",
+                "Gym *",
+                "Гимнастика *"
+            ],
+            "pos": [
+                0.55,
+                0.42
+            ],
+            "times": [
+                {
+                    "time": "10:30-11:00",
+                    "showTimeInCell": true,
+                    "showTimeInTag": false,
+                    "tag": [
+                        "Sabah Jimnastiği",
+                        "Morning Gym",
+                        "Morgengymnastik",
+                        "Утренняя гимнастика"
+                    ]
+                },
+                {
+                    "time": "16:30-17:00",
+                    "showTimeInCell": true,
+                    "showTimeInTag": false,
+                    "tag": [
+                        "Zumba",
+                        "Zumba",
+                        "Zumba",
+                        "Зумба"
+                    ]
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Dart *",
+                "Darts *",
+                "Dart *",
+                "Дартс *"
+            ],
+            "pos": [
+                0.88,
+                0.41
+            ],
+            "times": [
+                {
+                    "time": "11:00-11:30",
+                    "showTimeInCell": true,
+                    "showTimeInTag": false
+                },
+                {
+                    "time": "16:00-16:30",
+                    "showTimeInCell": true,
+                    "showTimeInTag": false
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Havuz *",
+                "Pool *",
+                "Pool *",
+                "Бассейн *"
+            ],
+            "pos": [
+                0.72,
+                0.11
+            ],
+            "times": [
+                {
+                    "time": "12:00-12:30",
+                    "showTimeInCell": true,
+                    "showTimeInTag": false,
+                    "tag": [
+                        "Havuz Oyunu",
+                        "Pool Game",
+                        "Poolspiel",
+                        "Игра в бассейне"
+                    ]
+                },
+                {
+                    "time": "15:15-15:45",
+                    "showTimeInCell": true,
+                    "showTimeInTag": false,
+                    "tag": [
+                        "Su Topu",
+                        "Water Polo",
+                        "Wasserball",
+                        "Водное поло"
+                    ]
+                }
+            ],
+            "type": "activity"
+        },
+        {
+            "names": [
+                "Spa",
+                "Spa",
+                "Spa",
+                "Спа"
+            ],
+            "pos": [
+                0.74,
+                0.48
+            ],
+            "times": [
+                {
+                    "time": "08:00-10:00",
+                    "showTimeInCell": true,
+                    "showTimeInTag": true,
+                    "tag": [
+                        "Spa\n08:30-11:30\nTemiz havlular",
+                        "Spa\n08:30-11:30\nFresh Towels",
+                        "Spa\n08:30-11:30\nFrische Handtücher",
+                        "Спа\n08:30-11:30\nСвежие полотенца"
+                    ]
+                },
+                {
+                    "time": "16:00-18:30",
+                    "showTimeInCell": true,
+                    "showTimeInTag": true,
+                    "tag": [
+                        "Sauna\n18:30'a kadar\nHavlu iadesi",
+                        "Sauna\nuntil 18:30\nTowel Return",
+                        "Sauna\nbis 18:30\nHandtuchrückgabe",
+                        "Сауна\nдо 18:30\nВозврат полотенец"
+                    ]
+                }
+            ],
+            "type": "activity"
+        }
+    ]
+}
