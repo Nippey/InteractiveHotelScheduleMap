@@ -661,7 +661,7 @@
             if (window.location.hash !== "#debug") return;
             document.body.classList.add("debug-mode");
             if (!debugCoordinates) return;
-            debugCoordinates.textContent = "Debug: Auf die Karte klicken, um JSON-Koordinaten zu ermitteln.";
+            debugCoordinates.textContent = "Debug: Click on the map to show coordinates.";
             mapImage.addEventListener("click", function(event) {
               const rect = mapImage.getBoundingClientRect();
               const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
@@ -1120,11 +1120,11 @@
             debugEditor.innerHTML="";
             const title=document.createElement("h2"); title.textContent="JSON editor"; debugEditor.appendChild(title);
             const toolbar=document.createElement("div"); toolbar.className="debug-editor-toolbar";
-            toolbar.appendChild(textInput("Hotel name",data.hotelName || "",function(v){data.hotelName=v; hotelName.textContent=v;}));
             toolbar.appendChild(addButton("Download mapData.json",function(){
               const blob=new Blob([JSON.stringify(data,null,2)+"\n"],{type:"application/json"});
               const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="mapData.json"; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},0);
             }));
+            toolbar.appendChild(textInput("Hotel name: ",data.hotelName || "",function(v){data.hotelName=v; hotelName.textContent=v;}));
             debugEditor.appendChild(toolbar);
             const langSec=document.createElement("div"); langSec.className="debug-editor-section";
             const lh=document.createElement("h3"); lh.textContent="Languages"; langSec.appendChild(lh);
