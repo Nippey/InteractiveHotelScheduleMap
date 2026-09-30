@@ -9,7 +9,7 @@ Open the hosted web app in a browser. The app automatically selects a configured
 ### Developer reference
 
 #### Files
-- indexV18.html: user interface, rendering, localization, selection, current-time marker, and debug editor.
+- index.html: user interface, rendering, localization, selection, current-time marker, and debug editor.
 - mapData.json: all hotel-specific text, entries, positions, and opening times.
 - map.png: hotel map image used by the UI.
 - manifest.webmanifest: installable web-app metadata.
