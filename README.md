@@ -2,6 +2,9 @@
 
 A responsive, multilingual hotel map showing food/drink and activity opening times together with interactive locations on a hotel map.
 
+See a demonstration at <https://nippey.github.io/InteractiveHotelScheduleMap>  
+See the debug mode at <https://nippey.github.io/InteractiveHotelScheduleMap#debug>  
+
 ### Usage and features
 
 Open the hosted web app in a browser. The app automatically selects a configured language matching the browser language when possible; use the language buttons to switch manually. Food/drink and activity timelines show the configured daily time ranges. Click an entry, time block, or map marker to keep the corresponding location highlighted and display available time details. A blue line marks the current local browser time. The layout adapts to narrow screens.
