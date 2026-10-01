@@ -662,7 +662,6 @@
           let selectedLanguageIndex = 0;
           let persistentEntryIndex = null;
           let debugEditingEntry = null;
-          let debugEditingLanguageIndex = null;
           let debugPositionInputs = null;
           function initDebugCoordinates() {
             if (window.location.hash !== "#debug") return;
@@ -1091,7 +1090,6 @@
                 }
               }
             }
-            buildLanguageSelector();
             rebuildDebugEditor();
             updateLanguage();
           }
@@ -1159,8 +1157,8 @@
               summary.className = "debug-editor-summary";
               summary.textContent = "Code: " + (data.languages[i].code || "?");
               row.appendChild(summary);
-              const controlsDiv = document.createElement("div");
-              controlsDiv.className = "debug-order-controls";
+              const controls = document.createElement("div");
+              controls.className = "debug-order-controls";
               if (i > 0) {
                 const upBtn = document.createElement("button");
                 upBtn.className = "debug-order-button";
@@ -1168,7 +1166,7 @@
                 upBtn.addEventListener("click", function() {
                   moveLanguage(i, i - 1);
                 });
-                controlsDiv.appendChild(upBtn);
+                controls.appendChild(upBtn);
               }
               if (i < data.languages.length - 1) {
                 const downBtn = document.createElement("button");
@@ -1177,71 +1175,9 @@
                 downBtn.addEventListener("click", function() {
                   moveLanguage(i, i + 1);
                 });
-                controlsDiv.appendChild(downBtn);
+                controls.appendChild(downBtn);
               }
-              const editBtn = document.createElement("button");
-              editBtn.className = "debug-editor-button";
-              editBtn.textContent = "Edit";
-              editBtn.addEventListener("click", function() {
-                if (row.classList.contains("editing")) {
-                  row.classList.remove("editing");
-                  debugEditingLanguageIndex = null;
-                } else {
-                  document.querySelectorAll(".debug-editor-row.editing").forEach(function(r) { r.classList.remove("editing"); });
-                  row.classList.add("editing");
-                  debugEditingLanguageIndex = i;
-                  const language = data.languages[i];
-                  row.innerHTML = "";
-                  const fieldsDiv = document.createElement("div");
-                  fieldsDiv.className = "debug-editor-fields";
-                  for (const key of ["lang", "code", "flag", "foodTitle", "activityTitle", "footnote"]) {
-                    if (Array.isArray(language[key])) {
-                      const label = document.createElement("label");
-                      label.textContent = key;
-                      const textarea = document.createElement("textarea");
-                      textarea.value = JSON.stringify(language[key]);
-                      label.appendChild(textarea);
-                      fieldsDiv.appendChild(label);
-                    } else {
-                      const label = document.createElement("label");
-                      label.textContent = key;
-                      const input = document.createElement("input");
-                      input.type = "text";
-                      input.value = language[key] || "";
-                      label.appendChild(input);
-                      fieldsDiv.appendChild(label);
-                    }
-                  }
-                  row.appendChild(fieldsDiv);
-                  const actionsDiv = document.createElement("div");
-                  actionsDiv.className = "debug-editor-actions";
-                  const saveBtn = document.createElement("button");
-                  saveBtn.className = "debug-editor-button";
-                  saveBtn.textContent = "Done";
-                  saveBtn.addEventListener("click", function() {
-                    const inputs = fieldsDiv.querySelectorAll("input, textarea");
-                    let idx = 0;
-                    for (const key of ["lang", "code", "flag", "foodTitle", "activityTitle", "footnote"]) {
-                      if (idx >= inputs.length) break;
-                      try {
-                        const val = inputs[idx].value;
-                        if (Array.isArray(language[key])) {
-                          language[key] = JSON.parse(val);
-                        } else {
-                          language[key] = val;
-                        }
-                      } catch (e) {}
-                      idx++;
-                    }
-                    rebuildDebugEditor();
-                    updateLanguage();
-                  });
-                  actionsDiv.appendChild(saveBtn);
-                  row.appendChild(actionsDiv);
-                }
-              });
-              controlsDiv.appendChild(editBtn);
-              row.appendChild(controlsDiv);
+              row.appendChild(controls);
               languagesSection.appendChild(row);
             }
             debugEditor.appendChild(languagesSection);
@@ -1263,8 +1199,8 @@
               summary.className = "debug-editor-summary";
               summary.textContent = (Array.isArray(entry.times) ? entry.times.length : 0) + " time slots";
               row.appendChild(summary);
-              const controlsDiv = document.createElement("div");
-              controlsDiv.className = "debug-order-controls";
+              const controls = document.createElement("div");
+              controls.className = "debug-order-controls";
               if (i > 0) {
                 const upBtn = document.createElement("button");
                 upBtn.className = "debug-order-button";
@@ -1272,7 +1208,7 @@
                 upBtn.addEventListener("click", function() {
                   moveEntry(i, i - 1);
                 });
-                controlsDiv.appendChild(upBtn);
+                controls.appendChild(upBtn);
               }
               if (i < data.entries.length - 1) {
                 const downBtn = document.createElement("button");
@@ -1281,99 +1217,9 @@
                 downBtn.addEventListener("click", function() {
                   moveEntry(i, i + 1);
                 });
-                controlsDiv.appendChild(downBtn);
+                controls.appendChild(downBtn);
               }
-              const editBtn = document.createElement("button");
-              editBtn.className = "debug-editor-button";
-              editBtn.textContent = "Edit";
-              editBtn.addEventListener("click", function() {
-                if (row.classList.contains("editing")) {
-                  row.classList.remove("editing");
-                  debugEditingEntry = null;
-                } else {
-                  document.querySelectorAll(".debug-editor-row.editing").forEach(function(r) { r.classList.remove("editing"); });
-                  row.classList.add("editing");
-                  debugEditingEntry = entry;
-                  row.innerHTML = "";
-                  const hint = document.createElement("div");
-                  hint.className = "debug-editor-hint";
-                  hint.textContent = "Position: Click the map while in edit mode to set coordinates.";
-                  row.appendChild(hint);
-                  const fieldsDiv = document.createElement("div");
-                  fieldsDiv.className = "debug-editor-fields";
-                  const typeLabel = document.createElement("label");
-                  typeLabel.textContent = "Type";
-                  const typeSelect = document.createElement("select");
-                  typeSelect.innerHTML = '<option>food</option><option>activity</option>';
-                  typeSelect.value = entry.type;
-                  typeLabel.appendChild(typeSelect);
-                  fieldsDiv.appendChild(typeLabel);
-                  const xLabel = document.createElement("label");
-                  xLabel.textContent = "Pos X";
-                  const xInput = document.createElement("input");
-                  xInput.type = "number";
-                  xInput.step = "0.0001";
-                  xInput.min = "0";
-                  xInput.max = "1";
-                  xInput.value = entry.pos ? entry.pos[0] : 0;
-                  debugPositionInputs = { x: xInput };
-                  xLabel.appendChild(xInput);
-                  fieldsDiv.appendChild(xLabel);
-                  const yLabel = document.createElement("label");
-                  yLabel.textContent = "Pos Y";
-                  const yInput = document.createElement("input");
-                  yInput.type = "number";
-                  yInput.step = "0.0001";
-                  yInput.min = "0";
-                  yInput.max = "1";
-                  yInput.value = entry.pos ? entry.pos[1] : 0;
-                  debugPositionInputs.y = yInput;
-                  yLabel.appendChild(yInput);
-                  fieldsDiv.appendChild(yLabel);
-                  const namesLabel = document.createElement("label");
-                  namesLabel.textContent = "Names (JSON array)";
-                  namesLabel.style.gridColumn = "1 / -1";
-                  const namesTextarea = document.createElement("textarea");
-                  namesTextarea.value = JSON.stringify(entry.names || []);
-                  namesLabel.appendChild(namesTextarea);
-                  fieldsDiv.appendChild(namesLabel);
-                  row.appendChild(fieldsDiv);
-                  const timesSection = document.createElement("div");
-                  timesSection.className = "debug-time-list";
-                  const timesTitle = document.createElement("strong");
-                  timesTitle.textContent = "Times:";
-                  timesSection.appendChild(timesTitle);
-                  if (Array.isArray(entry.times)) {
-                    for (let ti = 0; ti < entry.times.length; ti++) {
-                      const timeEntry = entry.times[ti];
-                      const timeRow = document.createElement("div");
-                      timeRow.style.marginTop = "4px";
-                      const timeStr = (typeof timeEntry === "string") ? timeEntry : (timeEntry.time || "");
-                      timeRow.innerHTML = '<div style="font-size:11px">' + timeStr + '</div>';
-                      timesSection.appendChild(timeRow);
-                    }
-                  }
-                  row.appendChild(timesSection);
-                  const actionsDiv = document.createElement("div");
-                  actionsDiv.className = "debug-editor-actions";
-                  const saveBtn = document.createElement("button");
-                  saveBtn.className = "debug-editor-button";
-                  saveBtn.textContent = "Done";
-                  saveBtn.addEventListener("click", function() {
-                    entry.type = typeSelect.value;
-                    entry.pos = [Number(xInput.value), Number(yInput.value)];
-                    try {
-                      entry.names = JSON.parse(namesTextarea.value);
-                    } catch (e) {}
-                    rebuildDebugEditor();
-                    updateLanguage();
-                  });
-                  actionsDiv.appendChild(saveBtn);
-                  row.appendChild(actionsDiv);
-                }
-              });
-              controlsDiv.appendChild(editBtn);
-              row.appendChild(controlsDiv);
+              row.appendChild(controls);
               entriesSection.appendChild(row);
             }
             debugEditor.appendChild(entriesSection);
