@@ -511,12 +511,6 @@
       .debug-time-list { grid-column:1 / -1; margin-left:12px; }
       .debug-editor-actions { display:flex; gap:4px; }
       .debug-editor-button { padding:4px 7px; cursor:pointer; }
-      .debug-type-keyword { font-weight:bold; padding:0 2px; border-radius:2px; }
-      .debug-type-keyword.food { background-color:var(--food-color); color:white; }
-      .debug-type-keyword.activity { background-color:var(--activity-color); color:white; }
-      .debug-order-controls { display:flex; gap:4px; align-items:center; }
-      .debug-order-button { padding:2px 6px; font-size:11px; cursor:pointer; background:#f0f0f0; border:1px solid #ccc; border-radius:3px; }
-      .debug-order-button:hover { background:#e0e0e0; }
       /* ---------------------------------------------------------
            Very narrow displays
            --------------------------------------------------------- */
@@ -572,7 +566,7 @@
       <div id="languageBar"></div>
       <div id="error"></div>
       <div id="hotelName"></div>
-      <div id="devNote">I am not affiliated with Hane and own no rights on their Logos. Therefore i purposely used neither their logo nor their image material for the map. The map shown is AI generated.
+      <div id="devNote">I am not affiliated with Hane and own no rights on their Logos. Therefore i purposely used neither their logo nor their image material for the map. The map shown is AI generated and contains errors! <br />
           Come to see the code at <a href="https://github.com/Nippey/InteractiveHotelScheduleMap">https://github.com/Nippey/InteractiveHotelScheduleMap</a>!
       </div>
       <!-- Food timeline -->
@@ -1023,223 +1017,180 @@
               point.addEventListener("mouseleave", function() {
                 highlightEntry(i, persistentEntryIndex === i);
               });
-              point.addEventListener("click", function() {
+              point.addEventListener("click", function(event) {
+                event.stopPropagation();
                 selectEntry(i);
               });
               mapOverlay.appendChild(point);
             }
           }
+          function updateCurrentTimeIndicators() {
+            const now = new Date();
+            const minutes = now.getHours() * 60 + now.getMinutes();
+            const left = (minutes / 1440 * 100) + "%";
+            const label = String(now.getHours()).padStart(2, "0") + ":" +
+              String(now.getMinutes()).padStart(2, "0");
+            const lines = document.querySelectorAll(".current-time-line");
+            for (let i = 0; i < lines.length; i++) {
+              lines[i].style.left = left;
+              const badge = lines[i].querySelector(".current-time-badge");
+              if (badge) badge.textContent = label;
+            }
+          }
+
+          function addCurrentTimeIndicator(container) {
+            const grids = container.querySelectorAll(".time-grid");
+            for (let i = 0; i < grids.length; i++) {
+              const line = document.createElement("div");
+              line.className = "current-time-line";
+              if (i === 0) {
+                const badge = document.createElement("div");
+                badge.className = "current-time-badge";
+                line.appendChild(badge);
+              }
+              grids[i].appendChild(line);
+            }
+          }
+
           /* ---------------------------------------------------------
-             Update language
+             Language update
              --------------------------------------------------------- */
           function updateLanguage() {
+            const language = data.languages[selectedLanguageIndex];
+            /*
+             * Titles are now completely data-driven.
+             */
+            foodTitle.textContent = language.foodTitle || "";
+            activityTitle.textContent = language.activityTitle || "";
+            footnote.textContent = language.footnote || "";
             updateLanguageButtons();
             buildTimeline(foodTimeline, "food");
             buildTimeline(activityTimeline, "activity");
+            addCurrentTimeIndicator(foodTimeline);
+            addCurrentTimeIndicator(activityTimeline);
+            updateCurrentTimeIndicators();
             buildMapPoints();
+            /*
+             * Restore selected entry.
+             */
+            if (persistentEntryIndex !== null) {
+              highlightEntry(persistentEntryIndex, true);
+            }
+            updateSelectedTimeBlocks();
+            document.documentElement.lang = language.code;
           }
           /* ---------------------------------------------------------
-             Current time indicator
+             Debug JSON editor
              --------------------------------------------------------- */
-          function updateCurrentTime() {
-            const now = new Date();
-            const minutes = now.getHours() * 60 + now.getMinutes();
-            const allTimelines = [foodTimeline, activityTimeline];
-            for (let t = 0; t < allTimelines.length; t++) {
-              const timeline = allTimelines[t];
-              const existing = timeline.querySelector(".current-time-line");
-              if (existing) {
-                existing.remove();
-              }
-              if (minutes >= 0 && minutes < 1440) {
-                const line = document.createElement("div");
-                line.className = "current-time-line";
-                const badge = document.createElement("div");
-                badge.className = "current-time-badge";
-                badge.textContent = String(Math.floor(minutes / 60)).padStart(2, "0") + ":" + String(minutes % 60).padStart(2, "0");
-                line.appendChild(badge);
-                line.style.left = (minutes / 1440 * 100) + "%";
-                const grids = timeline.querySelectorAll(".time-grid");
-                if (grids.length > 0) {
-                  grids[0].appendChild(line);
-                }
-              }
-            }
-          }
-          /* ---------------------------------------------------------
-             Debug editor - Language reordering
-             --------------------------------------------------------- */
-          function moveLanguage(fromIndex, toIndex) {
-            const temp = data.languages[fromIndex];
-            data.languages[fromIndex] = data.languages[toIndex];
-            data.languages[toIndex] = temp;
-            for (let i = 0; i < data.entries.length; i++) {
-              if (Array.isArray(data.entries[i].names)) {
-                const tempName = data.entries[i].names[fromIndex];
-                data.entries[i].names[fromIndex] = data.entries[i].names[toIndex];
-                data.entries[i].names[toIndex] = tempName;
-              }
-              if (Array.isArray(data.entries[i].times)) {
-                for (let j = 0; j < data.entries[i].times.length; j++) {
-                  const timeEntry = data.entries[i].times[j];
-                  if (timeEntry && typeof timeEntry === "object" && Array.isArray(timeEntry.tag)) {
-                    const tempTag = timeEntry.tag[fromIndex];
-                    timeEntry.tag[fromIndex] = timeEntry.tag[toIndex];
-                    timeEntry.tag[toIndex] = tempTag;
-                  }
-                }
-              }
-            }
-            rebuildDebugEditor();
+          function refreshAppFromData() {
+            hotelName.textContent = data.hotelName || "";
+            buildLanguageSelector();
+            if (selectedLanguageIndex >= data.languages.length) selectedLanguageIndex = 0;
             updateLanguage();
+            if (document.body.classList.contains("debug-mode")) buildDebugEditor();
           }
-          /* ---------------------------------------------------------
-             Debug editor - Entry reordering
-             --------------------------------------------------------- */
-          function moveEntry(fromIndex, toIndex) {
-            const temp = data.entries[fromIndex];
-            data.entries[fromIndex] = data.entries[toIndex];
-            data.entries[toIndex] = temp;
-            rebuildDebugEditor();
-            updateLanguage();
+          function textInput(label, value, onChange, multiline) {
+            const wrap = document.createElement("label");
+            wrap.appendChild(document.createTextNode(label));
+            const input = multiline ? document.createElement("textarea") : document.createElement("input");
+            if (!multiline) input.type = "text";
+            input.value = value == null ? "" : String(value);
+            input.addEventListener("input", function(){ onChange(input.value); });
+            wrap.appendChild(input);
+            return wrap;
           }
-          /* ---------------------------------------------------------
-             Debug editor
-             --------------------------------------------------------- */
-          function highlightTypeKeywords(text) {
-            const parts = text.split(/\b(food|activity)\b/i);
-            const fragment = document.createDocumentFragment();
-            for (let i = 0; i < parts.length; i++) {
-              if (i % 2 === 0) {
-                fragment.appendChild(document.createTextNode(parts[i]));
-              } else {
-                const span = document.createElement("span");
-                span.className = "debug-type-keyword " + parts[i].toLowerCase();
-                span.textContent = parts[i];
-                fragment.appendChild(span);
-              }
-            }
-            return fragment;
+          function checkInput(label, value, onChange) {
+            const wrap=document.createElement("label"); wrap.className="check";
+            const input=document.createElement("input"); input.type="checkbox"; input.checked=!!value;
+            input.addEventListener("change",function(){onChange(input.checked);});
+            wrap.appendChild(input); wrap.appendChild(document.createTextNode(label)); return wrap;
           }
-
-          function rebuildDebugEditor() {
-            if (window.location.hash !== "#debug") return;
-            debugEditor.innerHTML = "";
-            const toolbar = document.createElement("div");
-            toolbar.className = "debug-editor-toolbar";
-            const exportBtn = document.createElement("button");
-            exportBtn.className = "debug-editor-button";
-            exportBtn.textContent = "Export as JSON";
-            exportBtn.addEventListener("click", function() {
-              const json = JSON.stringify(data, null, 2);
-              const blob = new Blob([json], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "mapData.json";
-              a.click();
-              URL.revokeObjectURL(url);
-            });
-            toolbar.appendChild(exportBtn);
+          function addButton(text, handler) {
+            const b=document.createElement("button"); b.type="button"; b.className="debug-editor-button"; b.textContent=text; b.addEventListener("click",handler); return b;
+          }
+          function languageSummary(language) {
+            return (language.flag || "") + " " + (language.lang || language.code || "Language") + " | " + (language.foodTitle || "") + " | " + (language.activityTitle || "");
+          }
+          function entrySummary(entry) {
+            const name=(entry.names && entry.names[0]) || "(unnamed)";
+            return name + " | " + (entry.type || "") + " | " + ((entry.times || []).length) + " time window(s)";
+          }
+          function buildDebugEditor() {
+            if (!debugEditor || !document.body.classList.contains("debug-mode")) return;
+            debugEditor.innerHTML="";
+            const title=document.createElement("h2"); title.textContent="JSON editor"; debugEditor.appendChild(title);
+            const toolbar=document.createElement("div"); toolbar.className="debug-editor-toolbar";
+            toolbar.appendChild(addButton("Download mapData.json",function(){
+              const blob=new Blob([JSON.stringify(data,null,2)+"\n"],{type:"application/json"});
+              const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="mapData.json"; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},0);
+            }));
+            toolbar.appendChild(textInput("Hotel name: ",data.hotelName || "",function(v){data.hotelName=v; hotelName.textContent=v;}));
             debugEditor.appendChild(toolbar);
-            const languagesSection = document.createElement("div");
-            languagesSection.className = "debug-editor-section";
-            const languagesTitle = document.createElement("h3");
-            languagesTitle.textContent = "Languages";
-            languagesSection.appendChild(languagesTitle);
-            for (let i = 0; i < data.languages.length; i++) {
-              const row = document.createElement("div");
-              row.className = "debug-editor-row";
-              const label = document.createElement("div");
-              label.textContent = data.languages[i].lang || "(unnamed)";
-              row.appendChild(label);
-              const summary = document.createElement("div");
-              summary.className = "debug-editor-summary";
-              summary.textContent = "Code: " + (data.languages[i].code || "?");
-              row.appendChild(summary);
-              const controls = document.createElement("div");
-              controls.className = "debug-order-controls";
-              if (i > 0) {
-                const upBtn = document.createElement("button");
-                upBtn.className = "debug-order-button";
-                upBtn.textContent = "↑";
-                upBtn.addEventListener("click", function() {
-                  moveLanguage(i, i - 1);
-                });
-                controls.appendChild(upBtn);
-              }
-              if (i < data.languages.length - 1) {
-                const downBtn = document.createElement("button");
-                downBtn.className = "debug-order-button";
-                downBtn.textContent = "↓";
-                downBtn.addEventListener("click", function() {
-                  moveLanguage(i, i + 1);
-                });
-                controls.appendChild(downBtn);
-              }
-              row.appendChild(controls);
-              languagesSection.appendChild(row);
-            }
-            debugEditor.appendChild(languagesSection);
-            const entriesSection = document.createElement("div");
-            entriesSection.className = "debug-editor-section";
-            const entriesTitle = document.createElement("h3");
-            entriesTitle.textContent = "Entries";
-            entriesSection.appendChild(entriesTitle);
-            for (let i = 0; i < data.entries.length; i++) {
-              const entry = data.entries[i];
-              const row = document.createElement("div");
-              row.className = "debug-editor-row";
-              const label = document.createElement("div");
-              const typeKeywordFragment = highlightTypeKeywords(entry.type);
-              label.appendChild(typeKeywordFragment);
-              label.appendChild(document.createTextNode(" - " + getLocalizedValue(entry.names)));
-              row.appendChild(label);
-              const summary = document.createElement("div");
-              summary.className = "debug-editor-summary";
-              summary.textContent = (Array.isArray(entry.times) ? entry.times.length : 0) + " time slots";
-              row.appendChild(summary);
-              const controls = document.createElement("div");
-              controls.className = "debug-order-controls";
-              if (i > 0) {
-                const upBtn = document.createElement("button");
-                upBtn.className = "debug-order-button";
-                upBtn.textContent = "↑";
-                upBtn.addEventListener("click", function() {
-                  moveEntry(i, i - 1);
-                });
-                controls.appendChild(upBtn);
-              }
-              if (i < data.entries.length - 1) {
-                const downBtn = document.createElement("button");
-                downBtn.className = "debug-order-button";
-                downBtn.textContent = "↓";
-                downBtn.addEventListener("click", function() {
-                  moveEntry(i, i + 1);
-                });
-                controls.appendChild(downBtn);
-              }
-              row.appendChild(controls);
-              entriesSection.appendChild(row);
-            }
-            debugEditor.appendChild(entriesSection);
+            const langSec=document.createElement("div"); langSec.className="debug-editor-section";
+            const lh=document.createElement("h3"); lh.textContent="Languages"; langSec.appendChild(lh);
+            data.languages.forEach(function(language,index){
+              const row=document.createElement("div"); row.className="debug-editor-row";
+              const summary=document.createElement("div"); summary.className="debug-editor-summary"; summary.textContent=languageSummary(language); row.appendChild(summary);
+              const fields=document.createElement("div"); fields.className="debug-editor-fields"; fields.style.display="none"; row.appendChild(fields);
+              function edit(){ document.querySelectorAll("#debugEditor .editing").forEach(function(r){ if(r!==row){r.classList.remove("editing"); const f=r.querySelector(".debug-editor-fields"); if(f)f.style.display="none";} }); row.classList.add("editing"); fields.style.display="grid"; }
+              function done(){ row.classList.remove("editing"); fields.style.display="none"; summary.textContent=languageSummary(language); refreshAppFromData(); }
+              fields.appendChild(textInput("Language",language.lang,function(v){language.lang=v;}));
+              fields.appendChild(textInput("Code",language.code,function(v){language.code=v;}));
+              fields.appendChild(textInput("Flag",language.flag,function(v){language.flag=v;}));
+              fields.appendChild(textInput("Food title",language.foodTitle,function(v){language.foodTitle=v;}));
+              fields.appendChild(textInput("Activity title",language.activityTitle,function(v){language.activityTitle=v;}));
+              fields.appendChild(textInput("Footnote",language.footnote,function(v){language.footnote=v;},true));
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); row.appendChild(actions); langSec.appendChild(row);
+            });
+            langSec.appendChild(addButton("+ Language",function(){data.languages.push({lang:"New language",code:"",flag:"",foodTitle:"",activityTitle:"",footnote:""}); buildDebugEditor();}));
+            debugEditor.appendChild(langSec);
+            const entrySec=document.createElement("div"); entrySec.className="debug-editor-section";
+            const eh=document.createElement("h3"); eh.textContent="Activities / entries"; entrySec.appendChild(eh);
+            const hint=document.createElement("div"); hint.className="debug-editor-hint"; hint.textContent="Position helper: while an activity / entry row is in Edit mode, click the hotel map above to copy the clicked coordinates directly into Position X and Position Y."; entrySec.appendChild(hint);
+            data.entries.forEach(function(entry,index){
+              const row=document.createElement("div"); row.className="debug-editor-row";
+              const summary=document.createElement("div"); summary.className="debug-editor-summary"; summary.textContent=entrySummary(entry); row.appendChild(summary);
+              const fields=document.createElement("div"); fields.className="debug-editor-fields"; fields.style.display="none"; row.appendChild(fields);
+              function edit(){ document.querySelectorAll("#debugEditor .editing").forEach(function(r){if(r!==row){r.classList.remove("editing");const f=r.querySelector(".debug-editor-fields");if(f)f.style.display="none";}}); row.classList.add("editing"); fields.style.display="grid"; debugEditingEntry=entry; debugPositionInputs={x:positionXInput,y:positionYInput}; }
+              function done(){ debugEditingEntry=null; debugPositionInputs=null; row.classList.remove("editing"); fields.style.display="none"; summary.textContent=entrySummary(entry); refreshAppFromData(); }
+              data.languages.forEach(function(language,li){ fields.appendChild(textInput("Name " + (language.code||li), (entry.names||[])[li]||"", function(v){entry.names=entry.names||[];entry.names[li]=v;})); });
+              const positionXField=textInput("Position X",entry.pos&&entry.pos[0],function(v){entry.pos=entry.pos||[0,0];entry.pos[0]=Number(v);});
+              const positionYField=textInput("Position Y",entry.pos&&entry.pos[1],function(v){entry.pos=entry.pos||[0,0];entry.pos[1]=Number(v);});
+              const positionXInput=positionXField.querySelector("input"), positionYInput=positionYField.querySelector("input"); fields.appendChild(positionXField); fields.appendChild(positionYField);
+              const typeWrap=document.createElement("label"); typeWrap.appendChild(document.createTextNode("Type")); const sel=document.createElement("select"); ["food","activity"].forEach(function(t){const o=document.createElement("option");o.value=t;o.textContent=t;if(entry.type===t)o.selected=true;sel.appendChild(o);});sel.addEventListener("change",function(){entry.type=sel.value;});typeWrap.appendChild(sel);fields.appendChild(typeWrap);
+              const timeList=document.createElement("div"); timeList.className="debug-time-list"; const th=document.createElement("strong"); th.textContent="Time windows"; timeList.appendChild(th);
+              entry.times=Array.isArray(entry.times)?entry.times:[];
+              entry.times.forEach(function(timeEntry,ti){ if(typeof timeEntry==="string"){timeEntry={time:timeEntry};entry.times[ti]=timeEntry;} const tf=document.createElement("div");tf.className="debug-editor-fields";tf.style.margin="6px 0";
+                tf.appendChild(textInput("Time",timeEntry.time||"",function(v){timeEntry.time=v;}));
+                data.languages.forEach(function(language,li){tf.appendChild(textInput("Tag "+(language.code||li),(timeEntry.tag||[])[li]||"",function(v){timeEntry.tag=timeEntry.tag||[];timeEntry.tag[li]=v;},true));});
+                tf.appendChild(textInput("Short",timeEntry.short||"",function(v){timeEntry.short=v;}));
+                tf.appendChild(checkInput("Show time in cell",timeEntry.showTimeInCell!==false,function(v){timeEntry.showTimeInCell=v;}));
+                tf.appendChild(checkInput("Show time in tag",timeEntry.showTimeInTag===true,function(v){timeEntry.showTimeInTag=v;}));
+                tf.appendChild(addButton("Remove window",function(){entry.times.splice(ti,1);buildDebugEditor();})); timeList.appendChild(tf);
+              });
+              timeList.appendChild(addButton("+ Time window",function(){entry.times.push({time:"00:00-00:00",tag:[],showTimeInCell:true,showTimeInTag:false});buildDebugEditor();})); fields.appendChild(timeList);
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); actions.appendChild(addButton("Delete",function(){data.entries.splice(index,1);refreshAppFromData();})); row.appendChild(actions); entrySec.appendChild(row);
+            });
+            entrySec.appendChild(addButton("+ Activity / entry",function(){data.entries.push({names:data.languages.map(function(){return "";}),pos:[0.5,0.5],times:[],type:"activity"});buildDebugEditor();}));
+            debugEditor.appendChild(entrySec);
           }
           /* ---------------------------------------------------------
-             Initialize
+             Initialization
              --------------------------------------------------------- */
-          initDebugCoordinates();
           selectedLanguageIndex = detectBrowserLanguage();
+          initDebugCoordinates();
           buildLanguageSelector();
-          buildTimeline(foodTimeline, "food");
-          buildTimeline(activityTimeline, "activity");
-          buildMapPoints();
-          updateLanguageButtons();
-          updateCurrentTime();
-          setInterval(updateCurrentTime, 30000);
-          rebuildDebugEditor();
-          footnote.innerHTML = data.footnote ? getLocalizedValue(data.footnote) : "";
+          updateLanguage();
+          buildDebugEditor();
+          setInterval(updateCurrentTimeIndicators, 60000);
+          console.log("Interactive map initialized.", data);
+          if ("serviceWorker" in navigator && location.protocol !== "file:") {
+            navigator.serviceWorker.register("service-worker.js").catch(function(error) {
+              console.warn("Service worker registration failed.", error);
+            });
+          }
         } catch (error) {
-          showError(error.message || String(error));
+          showError("Application initialization failed:\n\n" + error.message);
         }
       })();
     </script>
