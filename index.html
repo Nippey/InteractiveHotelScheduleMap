@@ -509,7 +509,9 @@
       .debug-editor-fields label.check { flex-direction:row; align-items:center; }
       .debug-editor-fields label.check input { width:auto; }
       .debug-time-list { grid-column:1 / -1; margin-left:12px; }
-      .debug-editor-actions { display:flex; gap:4px; }
+      .debug-editor-actions { display:flex; gap:4px; flex-wrap:wrap; }
+      .debug-editor-row.debug-entry-food { background:rgba(214,40,40,.10); box-shadow:inset 4px 0 0 var(--food-color); padding-left:6px; }
+      .debug-editor-row.debug-entry-activity { background:rgba(42,157,85,.10); box-shadow:inset 4px 0 0 var(--activity-color); padding-left:6px; }
       .debug-editor-button { padding:4px 7px; cursor:pointer; }
       /* ---------------------------------------------------------
            Very narrow displays
@@ -1111,6 +1113,26 @@
           function languageSummary(language) {
             return (language.flag || "") + " " + (language.lang || language.code || "Language") + " | " + (language.foodTitle || "") + " | " + (language.activityTitle || "");
           }
+          function moveItem(array, from, to) {
+            if (!Array.isArray(array) || to < 0 || to >= array.length || from === to) return false;
+            const item=array.splice(from,1)[0]; array.splice(to,0,item); return true;
+          }
+          function moveLanguage(from,to) {
+            if (to < 0 || to >= data.languages.length || from === to) return;
+            const selected=data.languages[selectedLanguageIndex];
+            if (!moveItem(data.languages,from,to)) return;
+            data.entries.forEach(function(entry){
+              if (Array.isArray(entry.names)) moveItem(entry.names,from,to);
+              if (Array.isArray(entry.times)) entry.times.forEach(function(t){ if(t && typeof t === "object" && Array.isArray(t.tag)) moveItem(t.tag,from,to); });
+            });
+            selectedLanguageIndex=Math.max(0,data.languages.indexOf(selected));
+            refreshAppFromData();
+          }
+          function moveEntry(from,to) {
+            if (!moveItem(data.entries,from,to)) return;
+            if (persistentEntryIndex===from) persistentEntryIndex=to; else if (persistentEntryIndex===to) persistentEntryIndex=from;
+            refreshAppFromData();
+          }
           function entrySummary(entry) {
             const name=(entry.names && entry.names[0]) || "(unnamed)";
             return name + " | " + (entry.type || "") + " | " + ((entry.times || []).length) + " time window(s)";
@@ -1140,7 +1162,7 @@
               fields.appendChild(textInput("Food title",language.foodTitle,function(v){language.foodTitle=v;}));
               fields.appendChild(textInput("Activity title",language.activityTitle,function(v){language.activityTitle=v;}));
               fields.appendChild(textInput("Footnote",language.footnote,function(v){language.footnote=v;},true));
-              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); row.appendChild(actions); langSec.appendChild(row);
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("↑",function(){moveLanguage(index,index-1);})); actions.appendChild(addButton("↓",function(){moveLanguage(index,index+1);})); actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); row.appendChild(actions); langSec.appendChild(row);
             });
             langSec.appendChild(addButton("+ Language",function(){data.languages.push({lang:"New language",code:"",flag:"",foodTitle:"",activityTitle:"",footnote:""}); buildDebugEditor();}));
             debugEditor.appendChild(langSec);
@@ -1149,6 +1171,7 @@
             const hint=document.createElement("div"); hint.className="debug-editor-hint"; hint.textContent="Position helper: while an activity / entry row is in Edit mode, click the hotel map above to copy the clicked coordinates directly into Position X and Position Y."; entrySec.appendChild(hint);
             data.entries.forEach(function(entry,index){
               const row=document.createElement("div"); row.className="debug-editor-row";
+              if(entry.type==="food") row.classList.add("debug-entry-food"); else if(entry.type==="activity") row.classList.add("debug-entry-activity");
               const summary=document.createElement("div"); summary.className="debug-editor-summary"; summary.textContent=entrySummary(entry); row.appendChild(summary);
               const fields=document.createElement("div"); fields.className="debug-editor-fields"; fields.style.display="none"; row.appendChild(fields);
               function edit(){ document.querySelectorAll("#debugEditor .editing").forEach(function(r){if(r!==row){r.classList.remove("editing");const f=r.querySelector(".debug-editor-fields");if(f)f.style.display="none";}}); row.classList.add("editing"); fields.style.display="grid"; debugEditingEntry=entry; debugPositionInputs={x:positionXInput,y:positionYInput}; }
@@ -1169,7 +1192,7 @@
                 tf.appendChild(addButton("Remove window",function(){entry.times.splice(ti,1);buildDebugEditor();})); timeList.appendChild(tf);
               });
               timeList.appendChild(addButton("+ Time window",function(){entry.times.push({time:"00:00-00:00",tag:[],showTimeInCell:true,showTimeInTag:false});buildDebugEditor();})); fields.appendChild(timeList);
-              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); actions.appendChild(addButton("Delete",function(){data.entries.splice(index,1);refreshAppFromData();})); row.appendChild(actions); entrySec.appendChild(row);
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("↑",function(){moveEntry(index,index-1);})); actions.appendChild(addButton("↓",function(){moveEntry(index,index+1);})); actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); actions.appendChild(addButton("Delete",function(){data.entries.splice(index,1);refreshAppFromData();})); row.appendChild(actions); entrySec.appendChild(row);
             });
             entrySec.appendChild(addButton("+ Activity / entry",function(){data.entries.push({names:data.languages.map(function(){return "";}),pos:[0.5,0.5],times:[],type:"activity"});buildDebugEditor();}));
             debugEditor.appendChild(entrySec);
