@@ -659,20 +659,31 @@
           let persistentEntryIndex = null;
           let debugEditingEntry = null;
           let debugPositionInputs = null;
-          function initDebugCoordinates() {
-            if (window.location.hash !== "#debug") return;
-            document.body.classList.add("debug-mode");
+          let debugMapClickInstalled = false;
+          function syncDebugMode() {
+            const enabled = window.location.hash === "#debug";
+            document.body.classList.toggle("debug-mode", enabled);
             if (!debugCoordinates) return;
-            debugCoordinates.textContent = "Debug: Click on the map to show coordinates.";
-            mapImage.addEventListener("click", function(event) {
-              const rect = mapImage.getBoundingClientRect();
-              const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-              const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-              debugCoordinates.textContent = '"pos": [' + x.toFixed(4) + ', ' + y.toFixed(4) + ']';
-              if (debugEditingEntry && debugPositionInputs) { debugEditingEntry.pos=[Number(x.toFixed(4)),Number(y.toFixed(4))]; debugPositionInputs.x.value=x.toFixed(4); debugPositionInputs.y.value=y.toFixed(4); }
-            });
+            if (enabled) {
+              if (!debugCoordinates.textContent) debugCoordinates.textContent = "Debug: Click on the map to show coordinates.";
+              if (!debugMapClickInstalled) {
+                mapImage.addEventListener("click", function(event) {
+                  if (window.location.hash !== "#debug") return;
+                  const rect = mapImage.getBoundingClientRect();
+                  const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+                  const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+                  debugCoordinates.textContent = '"pos": [' + x.toFixed(4) + ', ' + y.toFixed(4) + ']';
+                  if (debugEditingEntry && debugPositionInputs) { debugEditingEntry.pos=[Number(x.toFixed(4)),Number(y.toFixed(4))]; debugPositionInputs.x.value=x.toFixed(4); debugPositionInputs.y.value=y.toFixed(4); }
+                });
+                debugMapClickInstalled = true;
+              }
+              buildDebugEditor();
+            } else {
+              debugEditingEntry = null;
+              debugPositionInputs = null;
+            }
           }
-
+          window.addEventListener("hashchange", syncDebugMode);
           /* ---------------------------------------------------------
              Language detection
              --------------------------------------------------------- */
@@ -1128,6 +1139,20 @@
             selectedLanguageIndex=Math.max(0,data.languages.indexOf(selected));
             refreshAppFromData();
           }
+          function deleteLanguage(index) {
+            if (data.languages.length <= 1) { alert("At least one language is required."); return; }
+            const selected = data.languages[selectedLanguageIndex];
+            data.languages.splice(index, 1);
+            data.entries.forEach(function(entry) {
+              if (Array.isArray(entry.names)) entry.names.splice(index, 1);
+              if (Array.isArray(entry.times)) entry.times.forEach(function(t) {
+                if (t && typeof t === "object" && Array.isArray(t.tag)) t.tag.splice(index, 1);
+              });
+            });
+            selectedLanguageIndex = data.languages.indexOf(selected);
+            if (selectedLanguageIndex < 0) selectedLanguageIndex = Math.min(index, data.languages.length - 1);
+            refreshAppFromData();
+          }
           function moveEntry(from,to) {
             if (!moveItem(data.entries,from,to)) return;
             if (persistentEntryIndex===from) persistentEntryIndex=to; else if (persistentEntryIndex===to) persistentEntryIndex=from;
@@ -1162,7 +1187,7 @@
               fields.appendChild(textInput("Food title",language.foodTitle,function(v){language.foodTitle=v;}));
               fields.appendChild(textInput("Activity title",language.activityTitle,function(v){language.activityTitle=v;}));
               fields.appendChild(textInput("Footnote",language.footnote,function(v){language.footnote=v;},true));
-              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("↑",function(){moveLanguage(index,index-1);})); actions.appendChild(addButton("↓",function(){moveLanguage(index,index+1);})); actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); row.appendChild(actions); langSec.appendChild(row);
+              const actions=document.createElement("div"); actions.className="debug-editor-actions"; actions.appendChild(addButton("↑",function(){moveLanguage(index,index-1);})); actions.appendChild(addButton("↓",function(){moveLanguage(index,index+1);})); actions.appendChild(addButton("Edit",edit)); actions.appendChild(addButton("Done",done)); actions.appendChild(addButton("Delete",function(){deleteLanguage(index);})); row.appendChild(actions); langSec.appendChild(row);
             });
             langSec.appendChild(addButton("+ Language",function(){data.languages.push({lang:"New language",code:"",flag:"",foodTitle:"",activityTitle:"",footnote:""}); buildDebugEditor();}));
             debugEditor.appendChild(langSec);
@@ -1201,7 +1226,7 @@
              Initialization
              --------------------------------------------------------- */
           selectedLanguageIndex = detectBrowserLanguage();
-          initDebugCoordinates();
+          syncDebugMode();
           buildLanguageSelector();
           updateLanguage();
           buildDebugEditor();
