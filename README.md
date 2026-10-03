@@ -2,6 +2,9 @@
 
 A responsive, multilingual hotel map showing food/drink and activity opening times together with interactive locations on a hotel map.
 
+_Map as seen on a desktop browser_
+![Map as seen on a desktop browser](DesktopView.jpg)
+
 See a demonstration at <https://nippey.github.io/InteractiveHotelScheduleMap>  
 See the debug mode at <https://nippey.github.io/InteractiveHotelScheduleMap#debug>  
 
@@ -35,6 +38,12 @@ The debug page also contains a visual editor for the loaded `mapData.json`, rath
 While an activity/entry row is in **Edit** mode, click the hotel map to copy the clicked normalized coordinates directly into that row's **Position X** and **Position Y** fields. The editor displays a reminder for this function.
 
 Use **Download mapData.json** to download the modified configuration for deployment on the server.
+
+_Map as seen an a mobile browser. With debug mode active._
+![Map as seen an a mobile browser. With debug mode active. ](MobileView_DebugMode.jpg)
+
+_Debug mode with an activity open for editing._
+![Debug mode with an activity open for editing. ](MobileView_DebugMode_EditActivity.jpg)
 
 ### Example AI prompt for completing and validating translations
 
